@@ -1,5 +1,5 @@
 import User from "../models/user.js";
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 
 //Generate JWT token 
@@ -26,7 +26,9 @@ export const register = async (req,res) => {
         const user = await User.create({name , email , password:hashedPassword})
         
         const token = generateToken(user._id);
-        res.status(201).json({success : true , token , user})
+        const safeUser = user.toObject();
+        delete safeUser.password;
+        res.status(201).json({success : true , token , user: safeUser})
 
     } catch(error) {
         console.error("Register error:" , error.message)
@@ -51,14 +53,13 @@ export const login = async (req,res) => {
             return res.status(400).json({success : false , message : "Invalid Credentials"});
         }
 
-        // Create user 
-        const user = await User.create({name , email , password:hashedPassword})
-        
         const token = generateToken(user._id);
-        res.status(201).json({success : true , token , user})
+        const safeUser = user.toObject();
+        delete safeUser.password;
+        res.status(200).json({success : true , token , user: safeUser})
 
     } catch(error) {
-        console.error("Register error:" , error.message)
+        console.error("Login error:" , error.message)
         res.status(500).json({success: false , message: "server error"})
 }
 }
@@ -75,7 +76,7 @@ export const getUser = async (req,res) => {
         res.json({success : true , user})
 
     } catch(error) {
-        console.error("Register error:" , error.message)
+        console.error("Get user error:" , error.message)
         res.status(500).json({success: false , message: "server error"})
 }
 }

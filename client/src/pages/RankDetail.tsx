@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Target, Globe, Clock, TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle, ExternalLink, Trophy, Users, Calendar, Loader2 } from "lucide-react";
 import { dummyWebsiteRanking } from "../assets/assets";
@@ -61,7 +60,7 @@ export default function RankDetail() {
         }, 1000);
     };
 
-    const drawChart = () => {
+    const drawChart = useCallback(() => {
         const canvas = chartRef.current;
         if (!canvas || !tracking) return;
 
@@ -193,7 +192,7 @@ export default function RankDetail() {
         ctx.textAlign = "center";
         ctx.fillText("Position", 0, 0);
         ctx.restore();
-    };
+    }, [tracking]);
 
     const getChangeIndicator = (change: number) => {
         if (change > 0) return { icon: <TrendingUp size={16} />, text: `+${change}`, class: "text-emerald-500" };
@@ -214,10 +213,8 @@ export default function RankDetail() {
     }, [id]);
 
     useEffect(() => {
-        if (tracking && tracking.rankHistory.length > 0 && chartRef.current) {
-            drawChart();
-        }
-    }, [tracking, activeTab]);
+        if (chartRef.current) drawChart();
+    }, [drawChart, activeTab]);
 
     if (loading) {
         return (

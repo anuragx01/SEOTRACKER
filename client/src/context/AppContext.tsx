@@ -1,5 +1,4 @@
 
-import type { AxiosInstance } from "axios";
 import axios from "axios";
 import { createContext, useEffect, useState, useContext, type ReactNode } from "react";
 
@@ -15,60 +14,53 @@ interface AppContextType {
     user: User | null ;
     token: string | null ;
     loading: boolean;
-    api: AxiosInstance;
-    login: (email: string , password: string) => Promise<{success: Boolean;
+    api: ReturnType<typeof axios.create>;
+    login: (email: string , password: string) => Promise<{success: boolean;
          message?: string}>;
     register: (name: string ,email: string , password: string) => Promise<
-    {success: Boolean; message?: string}>;
+    {success: boolean; message?: string}>;
     logout: () => void;
 }
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
+const api = axios.create({
+    baseURL: BACKEND_URL,
+});
+
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+});
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({children}: {children:ReactNode}) {
 
     const [user,setUser] = useState<User | null>(null);
-    const [token , setToken] = useState<string | null>(localStorage.getItem("token"));
-    const [loading , setLoading] = useState(true);
-
-    const api = axios.create({
-        baseURL: BACKEND_URL,
-    })
-
-    api.interceptors.request.use((config) => {
-        const token = localStorage.getItem("token")
-
-        if(token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-
-        return config;
-    })
-
-
-    const loadUser = async() => {
-          if(!token) {
-            setLoading(false)
-            return;
-          }
-          try {
-              const {data} = await api.get('/api/auth/user')
-              if(data.success) {
-                setUser(data.user)
-              }
-          } catch(error) {
-             localStorage.removeItem("token");
-             setToken(null)
-             setUser(null)
-          }
-          setLoading(false)
-    }
+    const storedToken = localStorage.getItem("token");
+    const [token, setToken] = useState<string | null>(storedToken);
+    const [loading, setLoading] = useState(Boolean(storedToken));
 
     useEffect(() => {
-        loadUser()
-    },[])
+        if (!token) return;
+
+        api.get('/api/auth/user')
+            .then(({ data }) => {
+                if (data.success) setUser(data.user);
+            })
+            .catch(() => {
+                localStorage.removeItem("token");
+                setToken(null);
+                setUser(null);
+            })
+            .finally(() => setLoading(false));
+    }, [token]);
 
 
     const login = async(email: string , password: string) => {
@@ -77,12 +69,15 @@ export function AppProvider({children}: {children:ReactNode}) {
             if(res.data.success) {
                 setToken(res.data.token)
                 setUser(res.data.user)
-                localStorage.setItem("token" , res.data.message)
+                localStorage.setItem("token", res.data.token)
                 return {success: true}
             }
             return {success : false , message: res.data.message}
-           } catch(error: any) {
-             return {success: false , message: error.response?.data?.message || "login failed"}
+           } catch(error: unknown) {
+             const message = axios.isAxiosError(error)
+                ? error.response?.data?.message
+                : undefined;
+             return {success: false, message: message || "Login failed"}
            }
     }
 
@@ -93,17 +88,20 @@ export function AppProvider({children}: {children:ReactNode}) {
             if(res.data.success) {
                 setToken(res.data.token)
                 setUser(res.data.user)
-                localStorage.setItem("token" , res.data.message)
+                localStorage.setItem("token", res.data.token)
                 return {success: true}
             }
             return {success : false , message: res.data.message}
-           } catch(error: any) {
-             return {success: false , message: error.response?.data?.message || "Registration failed"}
+           } catch(error: unknown) {
+             const message = axios.isAxiosError(error)
+                ? error.response?.data?.message
+                : undefined;
+             return {success: false, message: message || "Registration failed"}
            }
     }
 
     
-    const logout = async() => {
+    const logout = () => {
           setToken(null)
           setUser(null)
           localStorage.removeItem("token")
@@ -116,6 +114,8 @@ export function AppProvider({children}: {children:ReactNode}) {
     </AppContext.Provider>
 }
 
+// The context hook intentionally lives with its provider as their shared public API.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useApp() {
     const context = useContext(AppContext) 
     if(!context) throw new Error("useApp must be used within AppProvider");

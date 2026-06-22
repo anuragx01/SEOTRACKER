@@ -1,17 +1,16 @@
 import "./index.css";
-import App from "./App.tsx";
+import App from "./App";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider } from "./context/ThemeContext.tsx";
-import { AppProvider } from "./context/AppContext.tsx";
+import { ThemeProvider } from "./context/ThemeContext";
+import { AppProvider } from "./context/AppContext";
 
 createRoot(document.getElementById("root")!).render(
-    <BrowserRouter>
-        <ThemeProvider>
-            <AppProvider>
-            <App />
-            </AppProvider>
-            <App />
-        </ThemeProvider>
-    </BrowserRouter>
+  <BrowserRouter>
+    <ThemeProvider>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </ThemeProvider>
+  </BrowserRouter>
 );

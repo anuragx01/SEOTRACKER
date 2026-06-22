@@ -14,12 +14,11 @@ import { useApp } from "./context/AppContext";
 
 export default function App() {
     const { user, loading } = useApp();
+    const location = useLocation();
 
     if (loading) {
         return <div>Loading...</div>;
     }
-    
-    const location = useLocation();
 
     const hideNavbar = ["/login", "/register"].includes(location.pathname);
 
